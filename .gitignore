@@ -1,0 +1,8 @@
+node_modules/
+.state/
+.agentbridge/
+.env
+.env.*
+*.log
+coverage/
+*.agentbridge-backup

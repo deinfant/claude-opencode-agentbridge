@@ -1,0 +1,14 @@
+{
+  "name": "claude-opencode-agentbridge",
+  "version": "0.1.0",
+  "description": "A local, queued two-way agent bridge for Claude Code channels and OpenCode.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.22.2" },
+  "scripts": {
+    "test": "node --test test/queue.test.mjs test/receiver.test.mjs test/protocol.test.mjs test/setup.test.mjs",
+    "test:opencode": "node test/opencode-smoke.mjs",
+    "status": "node cli.mjs status"
+  },
+  "dependencies": { "@modelcontextprotocol/sdk": "1.32.1", "@opencode-ai/plugin": "1.18.35" }
+}

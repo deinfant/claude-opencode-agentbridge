@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+test('setup preserves other MCP entries, backs up once, is repeatable, and starts no broker', t => {
+  const dir = mkdtempSync(join(process.env.AGENTBRIDGE_TEST_TMP || tmpdir(), 'agentbridge-setup-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, '.mcp.json');
+  const original = JSON.stringify({ mcpServers: { existing: { command: 'unchanged' } } });
+  writeFileSync(file, original);
+  const run = () => spawnSync(process.execPath, [fileURLToPath(new URL('../setup.mjs', import.meta.url)), dir], { encoding: 'utf8', timeout: 3000 });
+  const first = run();
+  assert.equal(first.status, 0, first.stderr);
+  const config = JSON.parse(readFileSync(file, 'utf8'));
+  assert.deepEqual(config.mcpServers.existing, { command: 'unchanged' });
+  assert.equal(config.mcpServers.agentbridge.env.AGENTBRIDGE_PROJECT, dir);
+  assert.equal(readFileSync(file + '.agentbridge-backup', 'utf8'), original);
+  const wrapperPath = join(dir, '.opencode', 'plugins', 'agentbridge.js');
+  assert.match(readFileSync(wrapperPath, 'utf8'), /export \{ default \} from "file:/);
+  assert.equal(existsSync(join(dir, '.agentbridge', '.state')), false);
+  assert.equal(run().status, 0);
+  assert.equal(readFileSync(file + '.agentbridge-backup', 'utf8'), original);
+  writeFileSync(wrapperPath, '// existing user plugin');
+  const before = readFileSync(file, 'utf8');
+  assert.notEqual(run().status, 0);
+  assert.equal(readFileSync(wrapperPath, 'utf8'), '// existing user plugin');
+  assert.equal(readFileSync(file, 'utf8'), before);
+});
